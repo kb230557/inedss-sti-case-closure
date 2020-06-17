@@ -1,64 +1,8 @@
 
 
-
-
-
-
 #=========================GENERAL USE FUNCTIONS=========================#
 
-
-#Wait to click an element until present on the screen, defaults to 2 minutes of trying
-ifVisiblethenClick <- function(element, selectorType = "css", waitTime = 120) {
-  
-  checkElement <- try(rD$findElement(using = selectorType, value = element))
-  checkElementWait <- 0
-  
-  while(class(checkElement) == "try-error" & checkElementWait < waitTime) {
-    
-    Sys.sleep(1)
-    
-    checkElementWait <- checkElementWait + 1
-    
-    checkElement <- try(rD$findElement(using = selectorType, value = element))
-    
-  }
-  
-  rD$findElement(using = selectorType, value = element)$clickElement()
-  
-}
-
-
-#Wait to move to next step in script until visible
-isPageLoaded<- function(element, selectorType = "css", waitTime = 120) {
-  
-  checkElement <- try(rD$findElement(using = selectorType, value = element))
-  checkElementWait <- 0
-  
-  while(class(checkElement) == "try-error" & checkElementWait < waitTime) {
-    
-    Sys.sleep(1)
-    
-    checkElementWait <- checkElementWait + 1
-    
-    checkElement <- try(rD$findElement(using = selectorType, value = element))
-    
-  }
-  
-  return(checkElementWait)
-  
-}
-
-
-#Accept an alert with wait time; default is 3 seconds
-acceptAlertwithWait <- function(wait = 3) {
-  
-  Sys.sleep(wait)
-  rD$acceptAlert()
-  Sys.sleep(wait)
-  
-}
-
-
+#General use functions now loaded from Github
 
 
 
