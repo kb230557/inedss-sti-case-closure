@@ -17,7 +17,7 @@
 demographicsProcessing <- function() {
   
   #Click into demographics
-  rD$findElement("css", "fieldset.fieldsetNameBlock:nth-child(6) > legend:nth-child(1) > a:nth-child(2)")$clickElement()
+  click_link("Demographic")
   
   #Give page time to load
   isPageLoaded(".pageDesc")
@@ -81,8 +81,8 @@ demographicsProcessing <- function() {
       which(. == TRUE)
     
     #click Unknown and Add
-    rD$findElement("css", paste0("#availableRace > option:nth-child(", unknownRaceChild,")"))$clickElement()
-    rD$findElement("css", "fieldset.fieldsetHeader:nth-child(6) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(3) > p:nth-child(1) > input:nth-child(1)")$clickElement()
+    click(paste0("#availableRace > option:nth-child(", unknownRaceChild,")"))
+    click("fieldset.fieldsetHeader:nth-child(6) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(3) > p:nth-child(1) > input:nth-child(1)")
   
   } else if (isRaceUnknown & processingType == "new"){
     
@@ -116,7 +116,7 @@ demographicsProcessing <- function() {
     unknownEthnicityChild <- map_chr(rD$findElement("css", "#ethnic")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
       grepl("Unknown", .) %>%
       which(. == TRUE)
-    rD$findElement("css", paste0("#ethnic > option:nth-child(", unknownEthnicityChild,")"))$clickElement()
+    click(paste0("#ethnic > option:nth-child(", unknownEthnicityChild,")"))
     
   } else if (isEthnicityUnknown & processingType == "new") {
     
@@ -132,7 +132,7 @@ demographicsProcessing <- function() {
   
   
   #click save
-  rD$findElement("css", "input[name = \"save\"]")$clickElement()
+  click(name.is("save"))
   
   #Check to see if still on page and invalid conditions popped up
   pageTitle <- try(rD$findElement("css", ".pageDesc"))
@@ -141,7 +141,7 @@ demographicsProcessing <- function() {
   #If still on page and invalid conditions present, cancel out (throws off the script)
   if (class(pageTitle) != "try-error" & class(pageInvalidConditions) != "try-error") {
     
-    rD$findElement("css", "input[name = \"cancel\"]")$clickElement()
+    click(name.is("cancel"))
     
     return(NA)
     
@@ -156,7 +156,7 @@ demographicsProcessing <- function() {
   if (class(validateAddress) != "try-error") {
     
     #accept default validated address
-    rD$findElement("css", "input[name = \"save\"]")$clickElement()
+    click(name.is("save"))
     
   }
   
@@ -174,24 +174,24 @@ demographicsProcessing <- function() {
 diagnosisProcessing <- function() {
   
   #click into diagnosis
-  rD$findElement("css", "fieldset.fieldsetNameBlock:nth-child(8) > legend:nth-child(1) > a:nth-child(2)")$clickElement()
+  click_link("Diagnosis")
   
   #Give page time to load
   isPageLoaded(".pageDesc")
   
   #Checking test ordering facility
   isTestDropDownEmpty <- length(rD$findElement("css", "#testOrderingFacility")$findChildElements("css", "option[selected=\"\"]"))
-  isTestTextBoxEmpty <- nchar(rD$findElement("css", "#STDTRMTOTHTESTORDFAC")$getElementText()[[1]])
+  isTestTextBoxEmpty <- nchar(get_text("#STDTRMTOTHTESTORDFAC"))
   
   if (isTestDropDownEmpty == 0 & isTestTextBoxEmpty == 0) {
     
     #Gather comment info
-    diagnosisComment <- rD$findElement("css", "#STDPROVPARTNOTIFYCOM")$getElementText()[[1]]
+    diagnosisComment <- get_text("#STDPROVPARTNOTIFYCOM")
     
     #if comment contains test ordering info, copy into test ordering text box
     if(grepl("Test Ordering Info", diagnosisComment)) {
       
-      rD$findElement("css", "#STDTRMTOTHTESTORDFAC")$sendKeysToElement(list(diagnosisComment))
+      enter_text("#STDTRMTOTHTESTORDFAC", diagnosisComment)
       
     } 
     
@@ -199,7 +199,7 @@ diagnosisProcessing <- function() {
   
   
   #If not entering if above, test ordering facility is complete, exit with no error
-  rD$findElement("css", "#caseSummary")$clickElement()
+  click("#caseSummary")
   
   #Check for page-specific invalid conditions
   pageTitle <- try(rD$findElement("css", ".pageDesc"))
@@ -208,7 +208,7 @@ diagnosisProcessing <- function() {
   #If still on page and invalid conditions present, cancel out (throws off the script)
   if (class(pageTitle) != "try-error" & class(pageInvalidConditions) != "try-error") {
     
-    rD$findElement("css", "#cancel")$clickElement()
+    click("#cancel")
     
   }
   
@@ -224,7 +224,7 @@ diagnosisProcessing <- function() {
 treatmentProcessing <- function(ctorgc) {
   
   #Click into treatment
-  rD$findElement("css", "fieldset.fieldsetNameBlock:nth-child(10) > legend:nth-child(1) > a:nth-child(2)")$clickElement()
+  click_link("Treatments")
 
   #Give page time to load
   isPageLoaded(".pageDesc")
@@ -281,25 +281,25 @@ treatmentProcessing <- function(ctorgc) {
     
     #is treating provider available
     isTreatDropDownEmpty <- length(rD$findElement("css", "#treatingFacility")$findChildElements("css", "option[selected=\"\"]")) == 0
-    isTreatTextBoxEmpty <- nchar(str_squish(rD$findElement("css", "#STDTRMTOTHTREATFAC")$getElementText()[[1]])) < 2
+    isTreatTextBoxEmpty <- nchar(str_squish(get_text("#STDTRMTOTHTREATFAC"))) < 2
     
     #if not, attempt to click same as testing and copy diagnosis comment to box as back up
     if (isTreatDropDownEmpty == TRUE & isTreatTextBoxEmpty == TRUE) {
       
       #Attempt to click box
-      rD$findElement("css", "#sameAsTof")$clickElement()
+      click("#sameAsTof")
       
       #Make sure text box enabled
       #Click search
-      rD$findElement("css", "#searchTreatingFacility")$clickElement()
+      click("#searchTreatingFacility")
       #Search random string
-      rD$findElement("css", "#name")$sendKeysToElement(list("zzzz"))
+      enter_text("#name","zzzz")
       #Click search then cancel
-      rD$findElement("css", "input[name = \"search\"]")$clickElement()
-      rD$findElement("css", "input[name = \"cancel\"]")$clickElement()
+      click(name.is("search"))
+      click(name.is("cancel"))
       
       #Copy diagnosis provider to text box if available
-      rD$findElement("css", "#STDTRMTOTHTREATFAC")$sendKeysToElement(list(testOrderFac))
+      enter_text("#STDTRMTOTHTREATFAC", testOrderFac)
       
     }
     
@@ -312,17 +312,17 @@ treatmentProcessing <- function(ctorgc) {
     noRxChild <- map_chr(rD$findElement("css", "#treatment1")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
       grepl("No Treatment", .) %>%
       which(. == TRUE)
-    rD$findElement("css", paste0("#treatment1 > option:nth-child(", noRxChild,")"))$clickElement()
+    click(paste0("#treatment1 > option:nth-child(", noRxChild,")"))
     
     #Add comment
-    rD$findElement("css", "#STDTRMTCOMMENT")$sendKeysToElement(list("Treatment unknown."))
+    enter_text("#STDTRMTCOMMENT", "Treatment unknown.")
     
   }
   
 
   
   #Exit out of page
-  rD$findElement("css", "#caseSummary")$clickElement()
+  click("#caseSummary")
   
   #Check for page-specific invalid conditions
   pageTitle <- try(rD$findElement("css", ".pageDesc"))
