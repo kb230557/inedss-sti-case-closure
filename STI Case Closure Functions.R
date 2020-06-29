@@ -341,5 +341,22 @@ treatmentProcessing <- function(ctorgc) {
 }  
   
 
+#=========================LABORATORY=========================#
 
+labProcessing <- function() {
+  
+  #Click in Lab Tests section
+  click_link("Laboratory Tests")
+  
+  #Click to expand specimen info
+  click("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(7) > td:nth-child(7) > a:nth-child(1)")
+  
+  
+  
+  facilityName <- get_text("input#orderingFacilityName")
+  
+  
+  
+  
+}
 

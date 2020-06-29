@@ -28,8 +28,15 @@ autoCloseTimeDelay <- 90
 #Set time lag before cases will be subject to processing by the script
 processingDelay <- 14
 
-#File path to errors list -- IMPORTANT: IF RUNNING SCRIPT ON ENTIRE CASE LOAD ROUTINELY, WILL PROBABLY WANT ERROR CSV FROM PREVIOUS RUN TO BE DELETED OR EMPTIED FIRST
-errorCSV <- "S:/Enhanced Surveillance/General CD/Automated STI Case Closure/STI Exceptions.csv"
+#Create empty file to store cases that can't be closed yet
+#Note: if script run over multiple days, will need to concatenate files
+errors <- data.frame(StateCaseNumber = character(), 
+                      EventDate = as.Date(character()), 
+                      Disease = character(),
+                      Reason = character())
+error_path <- paste0("STI Exceptions_", Sys.Date(),".csv")
+write_csv(errors, error_path)
+
 
 #Import accepted treatment lists
 ct_rx <- read_csv('accepted_ct_rx.csv')
@@ -44,10 +51,11 @@ start_server()
 login_inedss()
 
 #Clicking into STIs (CSS not stable so must search to ID row)
-dashBoardItems <- rD$findElement(using = "css", value ="#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2)")$findChildElements(using = "css", "tbody > tr") %>%
-  map_chr(., function(x) x$getElementText()[[1]])
-stiRow <- which(grepl("STD Section", dashBoardItems))
+stiRow <- find_child_element("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2)", "tbody > tr", "STD Section")
+
 click(paste0("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(", stiRow, ") > td:nth-child(1) > a:nth-child(2)"))
+
+
 
 #Initializing n_child to start with first case 
 tr_n_child_Val <- 8
