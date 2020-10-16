@@ -343,19 +343,62 @@ treatmentProcessing <- function(ctorgc) {
 
 #=========================LABORATORY=========================#
 
+#helper function to extract fields from all of the details under lab result
+extractLabText = function(field, lab_text = lab){
+  gsub(paste0("^.*",field,": "), "", lab_text) %>%
+    gsub("\\n.*$", "", .)
+  
+}
+
+#Get ordering provider info
 labProcessing <- function() {
   
   #Click in Lab Tests section
-  click_link("Laboratory Tests")
+  #click_link("Laboratory Tests")
   
   #Click to expand specimen info
-  click("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(7) > td:nth-child(7) > a:nth-child(1)")
+  #click("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(7) > td:nth-child(7) > a:nth-child(1)")
   
+  #facilityName <- get_text("input#orderingFacilityName")
+  #facilityName <- get_text("#orderingFacilityName")
   
+  #code above to go into Laboratory Test not working, instead, expand.
   
-  facilityName <- get_text("input#orderingFacilityName")
+  #expand Laboratory Tests
+  click("#divft-4Anchor")
   
+  #Expand test
+  click("#div1002101599850212304Anchor")
   
+  #Get lab info
+  lab = get_text("#div1002101599850212304") 
+  
+  #fields to extract
+  fields = c("Ordering Facility Name", "Ordering Facility Address",
+             "Ordering Facility Phone", "Ordering Provider Name", 
+             "Ordering Provider Phone")
+  
+  #extract data from specified fields
+  ordering_facility = sapply(fields, extractLabText)
+  names(ordering_facility) %<>% gsub(" ", "", .)
+  
+  #address is two lines, have to extract differently
+  ordering_facility["OrderingFacilityAddress"] = str_extract(lab,
+                                                             pattern = "Ordering Facility Address: .*\\n.*\\n") %>%
+                                                  gsub("Ordering Facility Address: ", "", .) %>%
+                                                  gsub("\\n", ", ", .) %>%
+                                                  gsub("\\, $", "", .)
+  
+  #make data frame for easy binding
+  ordering_facility = data.frame(ordering_facility, stringsAsFactors = F) %>%
+    t() %>%
+    as.data.frame()
+  
+  #un-expand Laboratory Tests
+  click("#divft-4Anchor")
+  
+  #return data
+  return(ordering_facility)
   
   
 }
