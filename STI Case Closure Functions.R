@@ -345,8 +345,9 @@ treatmentProcessing <- function(ctorgc) {
 
 #helper function to extract fields from all of the details under lab result
 extractLabText = function(field, lab_text = lab){
-  gsub(paste0("^.*",field,": "), "", lab_text) %>%
-    gsub("\\n.*$", "", .)
+  gsub(paste0("^.*",field,":"), "", lab_text) %>%
+    gsub("\\n.*$|^ ", "", .) %>%
+    gsub("  ", " ", .)
   
 }
 
@@ -367,11 +368,17 @@ labProcessing <- function() {
   #expand Laboratory Tests
   click("#divft-4Anchor")
   
-  #Expand test
-  click("#div1002101599850212304Anchor")
+  #Expand first test
+  plus_buttons = rD$findElements(using = "css", value = "img[src$= \".PNG\"]")
+  plus_lab = plus_buttons[[5]]
+  plus_lab$clickElement()
+  
+  Sys.sleep(2)
   
   #Get lab info
-  lab = get_text("#div1002101599850212304") 
+  lab = get_text("#divft-4")
+  #print('here')
+  #print(lab)
   
   #fields to extract
   fields = c("Ordering Facility Name", "Ordering Facility Address",
@@ -379,7 +386,7 @@ labProcessing <- function() {
              "Ordering Provider Phone")
   
   #extract data from specified fields
-  ordering_facility = sapply(fields, extractLabText)
+  ordering_facility = sapply(fields, extractLabText, lab_text = lab)
   names(ordering_facility) %<>% gsub(" ", "", .)
   
   #address is two lines, have to extract differently
@@ -387,7 +394,8 @@ labProcessing <- function() {
                                                              pattern = "Ordering Facility Address: .*\\n.*\\n") %>%
                                                   gsub("Ordering Facility Address: ", "", .) %>%
                                                   gsub("\\n", ", ", .) %>%
-                                                  gsub("\\, $", "", .)
+                                                  gsub("\\, $", "", .) %>%
+                                                  gsub("  ", " ", .)
   
   #make data frame for easy binding
   ordering_facility = data.frame(ordering_facility, stringsAsFactors = F) %>%
