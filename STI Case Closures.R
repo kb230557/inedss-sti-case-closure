@@ -190,7 +190,7 @@ repeat {
 
       #write invalid conditions to file
       caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, stringsAsFactors = FALSE)
-      write_csv(caseResults, errorCSV, append = T)
+      write_csv(caseResults, error_path, append = T)
       
       #Increment cases worked counter
       totalLeftOpen <- totalLeftOpen + 1
@@ -265,11 +265,11 @@ repeat {
 stop_server()
 
 #Deduplicate error CSV  (might not be necessary if working through entire case load on each script run)
-errors <- read_csv(errorCSV) %>%
+errors <- read_csv(error_path) %>%
   distinct()
 
 #Resave final errors CSV
-write_csv(errors, errorCSV)
+write_csv(errors, error_path)
 
 #Save processing stats
 scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)
