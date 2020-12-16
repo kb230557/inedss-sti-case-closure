@@ -177,7 +177,8 @@ diagnosisProcessing <- function() {
   click_link("Diagnosis")
   
   #Give page time to load
-  isPageLoaded(".pageDesc")
+  #isPageLoaded(".pageDesc")
+  isPageLoaded("#STDTRMTOTHTESTORDFAC")
   
   #Checking test ordering facility
   isTestDropDownEmpty <- length(rD$findElement("css", "#testOrderingFacility")$findChildElements("css", "option[selected=\"\"]"))
@@ -191,6 +192,17 @@ diagnosisProcessing <- function() {
     #if comment contains test ordering info, copy into test ordering text box
     if(grepl("Test Ordering Info", diagnosisComment)) {
       
+      #must search first to enable box
+      click("#searchTestOrderingFacility")
+      #Search random string
+      enter_text("#name","zzzz")
+      #Click search then cancel
+      click(name.is("search"))
+      click(name.is("cancel"))
+      wait_page("Diagnosis")
+      isPageLoaded("#STDTRMTOTHTESTORDFAC")
+      
+      #when box enabled, enter comment
       enter_text("#STDTRMTOTHTESTORDFAC", diagnosisComment)
       
     } 
@@ -227,7 +239,10 @@ treatmentProcessing <- function(ctorgc) {
   click_link("Treatments")
 
   #Give page time to load
+  #Note:seeing a lot of failures here, not sure why isPageLoaded and wait_page aren't preventing them - best guess is top of page is loading before bottom so adding second isPageLoaded for lower element
   isPageLoaded(".pageDesc")
+  #wait_page("Treatments")
+  isPageLoaded("#STDTRMTOTHTREATFAC")
   
   #Setting correct rx list (script should fail if it encounters an STI besides CT or GC)
   if (ctorgc == 'Chlamydia') { rx_list <- ct_rx$rx} 
@@ -292,11 +307,13 @@ treatmentProcessing <- function(ctorgc) {
       #Make sure text box enabled
       #Click search
       click("#searchTreatingFacility")
+      wait_page("STD Facility Search")
       #Search random string
       enter_text("#name","zzzz")
       #Click search then cancel
       click(name.is("search"))
       click(name.is("cancel"))
+      isPageLoaded("#STDTRMTOTHTREATFAC")
       
       #Copy diagnosis provider to text box if available
       enter_text("#STDTRMTOTHTREATFAC", testOrderFac)
