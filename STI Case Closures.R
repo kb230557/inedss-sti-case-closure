@@ -20,7 +20,7 @@ devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/
 devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/inedss-rselenium-functions.R?raw=TRUE")
 
 #Set length of time before cases without treatment will be auto-closed (in days)
-autoCloseTimeDelay <- 90
+autoCloseTimeDelay <- 45
 
 #Set time lag before cases will be subject to processing by the script
 processingDelay <- 14
@@ -31,7 +31,7 @@ errors <- data.frame(StateCaseNumber = character(),
                       EventDate = as.Date(character()), 
                       Disease = character(),
                       Reason = character())
-error_path <- paste0("STI Exceptions_", Sys.Date(),".csv")
+error_path <- paste0(Sys.Date(), "_sti-exceptions.csv")
 write_csv(errors, error_path)
 
 

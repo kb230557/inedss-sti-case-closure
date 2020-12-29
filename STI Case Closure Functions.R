@@ -148,7 +148,7 @@ demographicsProcessing <- function() {
   }
   
   #Give next page time to load
-  Sys.sleep(1)
+  Sys.sleep(2)
   
   #See if the validate address page comes up
   validateAddress <- try(rD$findElement("css", "#enterAdd"))
