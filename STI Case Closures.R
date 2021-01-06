@@ -263,14 +263,7 @@ repeat {
 #Stop server
 stop_server()
 
-#Deduplicate error CSV  (might not be necessary if working through entire case load on each script run)
-errors <- read_csv(error_path) %>%
-  distinct()
-
-#Resave final errors CSV
-write_csv(errors, error_path)
-
-#Save processing stats
-scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)
-write_csv(scriptStats, "Processing Statistics.csv", append = T)
+#Save processing stats -- not useful until script is more stable
+# scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)
+# write_csv(scriptStats, "Processing Statistics.csv", append = T)
 

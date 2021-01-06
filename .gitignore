@@ -10,5 +10,6 @@ STI Exceptions_End*
 STI Exceptions_[2]*
 *.Rproj
 *_sti-exceptions.csv
+*_manual-closure-required.csv
 
 
