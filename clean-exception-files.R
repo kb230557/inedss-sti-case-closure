@@ -3,7 +3,8 @@ library(tidyverse)
 library(vroom)
 
 #load all exception files and deduplicate
-files <- list.files(pattern = "*_sti-exceptions.csv")
+#files <- list.files(pattern = "*_sti-exceptions.csv")
+files <- list.files(path = 'sti-exceptions', full.names = T)
 exceptions <- vroom(files) %>%
   distinct()
 

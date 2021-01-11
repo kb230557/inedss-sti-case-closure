@@ -31,7 +31,7 @@ errors <- data.frame(StateCaseNumber = character(),
                       EventDate = as.Date(character()), 
                       Disease = character(),
                       Reason = character())
-error_path <- paste0(Sys.Date(), "_sti-exceptions.csv")
+error_path <- paste0('sti-exceptions/', Sys.Date(), "_sti-exceptions.csv")
 write_csv(errors, error_path)
 
 
