@@ -1,0 +1,16 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+Archive/
+INEDSS_STD_BusinessRules.docx
+Processing Statistics.csv
+STI Exceptions.csv
+STI Exceptions_End*
+STI Exceptions_[2]*
+*.Rproj
+*_sti-exceptions.csv
+*_manual-closure-required.csv
+sti-exceptions/
+
+

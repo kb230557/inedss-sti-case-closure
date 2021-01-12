@@ -14,16 +14,13 @@ library(dplyr)
 #Note: IE is preferred browser for INEDSS but requires special drivers for Selenium. 
 #Chrome has issues with switching tabs so script will only work with the Firefox browser.
 
-#Set working directory
-setwd("S:/Enhanced Surveillance/General CD/Automated STI Case Closure")
-
 #Load all supporting functions
 source('STI Case Closure Functions.R')
 devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/general-use-rselenium-functions.R?raw=TRUE")
 devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/inedss-rselenium-functions.R?raw=TRUE")
 
 #Set length of time before cases without treatment will be auto-closed (in days)
-autoCloseTimeDelay <- 90
+autoCloseTimeDelay <- 45
 
 #Set time lag before cases will be subject to processing by the script
 processingDelay <- 14
@@ -40,7 +37,7 @@ errors <- data.frame(StateCaseNumber = character(),
                      OrderingProviderName = character(),
                      OrderingProviderPhone = character()
                      )  
-error_path <- paste0("STI Exceptions_", Sys.Date(),".csv")
+error_path <- paste0('sti-exceptions/', Sys.Date(), "_sti-exceptions.csv")
 write_csv(errors, error_path)
 
 
@@ -97,7 +94,8 @@ repeat {
   nextCase$clickElement()
   
   #Give case page time to load
-  isPageLoaded(".pageDesc")
+  #isPageLoaded(".pageDesc")
+  wait_page("Case Summary")
   
   #Store event date and state case number and disease for future use
   eventDate <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2)") %>%
@@ -207,7 +205,6 @@ repeat {
         bind_cols(provider)
       write_csv(caseResults, error_path, append = T)
       
-      
       #Increment cases worked counter
       totalLeftOpen <- totalLeftOpen + 1
       
@@ -225,6 +222,7 @@ repeat {
       
       #click complete investigation
       ifVisiblethenClick("fieldset.fieldsetHeader:nth-child(6) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2) > a:nth-child(1)")
+      wait_page("Complete Investigation")
       
       #Mark disposition as completed
       completedChild <- map_chr(rD$findElement("css","#dis")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
@@ -256,7 +254,7 @@ repeat {
   
   
   #Give main page time to load
-  isPageLoaded(".pageDesc")
+  wait_page("My Cases")
   
   #Determining page to work
   pageCount <- floor(totalLeftOpen / 25) + 1
@@ -280,14 +278,8 @@ repeat {
 #Stop server
 stop_server()
 
-#Deduplicate error CSV  (might not be necessary if working through entire case load on each script run)
-errors <- read_csv(error_path) %>%
-  distinct()
+#Save processing stats -- not useful until script is more stable
+# scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)
+# write_csv(scriptStats, "Processing Statistics.csv", append = T)
 
-#Resave final errors CSV
-write_csv(errors, error_path)
-
-#Save processing stats
-scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)
-write_csv(scriptStats, "Processing Statistics.csv", append = T)
 
