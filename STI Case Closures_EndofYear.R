@@ -14,15 +14,30 @@ library(dplyr)
 #Note: IE is preferred browser for INEDSS but requires special drivers for Selenium. 
 #Chrome has issues with switching tabs so script will only work with the Firefox browser.
 
-setwd("S:/Enhanced Surveillance/General CD/Automated STI Case Closure")
+#Load all supporting functions
+source('STI Case Closure Functions.R')
+devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/general-use-rselenium-functions.R?raw=TRUE")
+devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/inedss-rselenium-functions.R?raw=TRUE")
 
 source('STI Case Closure Functions.R')
 
 #Set year to be closed as two digit character
-endofYear <- "19"
+endofYear <- "20"
 
-#File path to errors list
-errorCSV <- "S:/Enhanced Surveillance/General CD/Automated STI Case Closure/STI Exceptions_EndofYear.csv"
+#Create empty file to store cases that can't be closed yet
+#Note: if script run over multiple days, will need to concatenate files
+errors <- data.frame(StateCaseNumber = character(), 
+                     EventDate = as.Date(character()), 
+                     Disease = character(),
+                     Reason = character(),
+                     OrderingFacilityName = character(),
+                     OrderingFacilityAddress = character(),
+                     OrderingFacilityPhone = character(),
+                     OrderingProviderName = character(),
+                     OrderingProviderPhone = character()
+)  
+error_path <- paste0('sti-exceptions/', Sys.Date(), "_sti-exceptions_end-of-year.csv")
+write_csv(errors, error_path)
 
 #Import accepted treatment lists
 ct_rx <- read_csv('accepted_ct_rx.csv')
@@ -31,64 +46,15 @@ gc_rx <- read_csv('accepted_gc_rx.csv')
 #=================LOGGING INTO THE PORTAL AND NAVIGATING TO LAB PROVIDER=================#
 
 #Open selenium session
-remDr <- rsDriver(browser = "firefox")
+start_server()
 
-#Extract the client for navigation
-rD <- remDr[['client']]
-
-#Navigating to log-in page
-rD$navigate("https://dph.partner.illinois.gov/my.policy")
-
-#Pause to give page time to load
-Sys.sleep(5)
-
-#Check for cookies error
-login_error <- try(rD$findElement("css", "#newSessionDIV > a:nth-child(1)"))
-if (class(login_error) != "try-error") {login_error$clickElement()}
-
-#Pause to give page time to load
-Sys.sleep(5)
-
-#Clicking link to access log-in screen
-rD$findElement("css", ".interaction_table_text_cell > a:nth-child(1)")$clickElement()
-
-#Pausing execution to give time to log in and load page
-Sys.sleep(5)
-
-#Enter credentials and log in
-rD$findElement(using = "css", value = "#input_1")$sendKeysToElement(list(key_get("idph_username"), key = "tab", key_get("idph_portal")))
-rD$findElement("css", "input[value = \"Logon\"]")$clickElement()
-
-#Pausing execution to give time to log in and load page
-Sys.sleep(10)
-
-#Mousing over applications button
-rD$findElement(using = "xpath", value = '//*[@id="zz6_RootAspMenu"]/li/ul/li[1]/a/span/span')$mouseMoveToLocation()
-
-#Finding production apps button
-rD$findElement(using = "xpath", value = '//*[@id="zz6_RootAspMenu"]/li/ul/li[1]/a')$clickElement()
-
-#Finding INEDSS buttons   -- IMPORTANT: XPATH WILL BE DIFFERENT DEPENDING ON APPS USER HAS
-ifVisiblethenClick('//*[@id="column"]/table[5]/tbody/tr/td[2]/a', selectorType = "xpath") #Kelley
-
-#Pausing execution to give time to load page
-Sys.sleep(10)
-
-#Switching focus to INEDSS tab   
-windows <- rD$getWindowHandles()   
-rD$switchToWindow(windows[[2]])
-
-#Clicking login button
-rD$findElement(using = "css", value = "input[name = \"login\"]")$clickElement()
-
-#Pausing execution to give time to load page
-Sys.sleep(5)
+#Log in to INEDSS
+login_inedss()
 
 #Clicking into STIs (CSS not stable so must search to ID row)
-dashBoardItems <- rD$findElement(using = "css", value ="#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2)")$findChildElements(using = "css", "tbody > tr") %>%
-  map_chr(., function(x) x$getElementText()[[1]])
-stiRow <- which(grepl("STD Section", dashBoardItems))
-rD$findElement("css", paste0("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(", stiRow, ") > td:nth-child(1) > a:nth-child(2)"))$clickElement()
+stiRow <- find_child_element("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2)", "tbody > tr", "STD Section")
+
+click(paste0("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(", stiRow, ") > td:nth-child(1) > a:nth-child(2)"))
 
 #Initializing n_child to start with first case 
 tr_n_child_Val <- 8
@@ -124,13 +90,14 @@ repeat {
   nextCase$clickElement()
   
   #Give case page time to load
-  isPageLoaded(".pageDesc")
+  #isPageLoaded(".pageDesc")
+  wait_page("Case Summary")
   
   #Store event date and state case number and disease for future use
-  eventDate <- rD$findElement("css", "#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2)")$getElementText()[[1]] %>%
+  eventDate <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2)") %>%
     lubridate::mdy()
-  stateCaseNumber <- rD$findElement("css", "#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(6) > td:nth-child(2)")$getElementText()[[1]]
-  disease <- rD$findElement("css", "#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1)")$getElementText()[[1]]
+  stateCaseNumber <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(6) > td:nth-child(2)")
+  disease <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1)")
   
   #Get first two digits of state case number
   scnPrefix<- substr(stateCaseNumber,1,2)
@@ -138,7 +105,7 @@ repeat {
   #Exit out if case is not being counted in the year being closed
   if (scnPrefix != endofYear) {
     
-    rD$findElement("css", "input[name = \"cancel\"]")$clickElement()
+    click(name.is("cancel"))
     
     #Increment cases worked counter
     totalLeftOpen <- totalLeftOpen + 1
@@ -153,7 +120,7 @@ repeat {
     processingType <- "old"
     
     #Click into All Case Details
-    rD$findElement("css", "fieldset.fieldsetHeader:nth-child(6) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > a:nth-child(1)")$clickElement()
+    click_link("View/Edit All Case Details")
     
     #Give page time to load
     isPageLoaded(".fullPageDescription")
@@ -218,21 +185,29 @@ repeat {
     invalidConditions <- invalidConditions %>%
       str_remove(pattern = "The following invalid conditions were found:\n\n") %>% 
       str_remove(pattern = "Race, Sex, and Ethnicity cannot be blank.") %>%
+      str_remove(pattern = "Disposition is required to close the case.") %>%
       str_squish()
     
     #Take final actions
     if (nchar(invalidConditions) > 1) { #invalid conditions exist, case will not be closed
 
-      #write invalid conditions to file
-      caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, stringsAsFactors = FALSE)
-      write_csv(caseResults, errorCSV, append = T)
+      #Give page time to load
+      isPageLoaded(".fullPageDescription")
       
-      #close out to main page
-      rD$findElement("css", "#closetop")$clickElement()
-      ifVisiblethenClick("input[name = \"cancel\"]")
+      #get provider info 
+      provider = labProcessing()
+      
+      #write invalid conditions to file
+      caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, stringsAsFactors = FALSE) %>%
+        bind_cols(provider)
+      write_csv(caseResults, error_path, append = T)
       
       #Increment cases worked counter
       totalLeftOpen <- totalLeftOpen + 1
+      
+      #close out to main page
+      click("#closetop")
+      ifVisiblethenClick(name.is("cancel"))
       
       #Determine next row to work
       tr_n_child_Val <- ifelse(totalLeftOpen %% 25 == 0, 8, tr_n_child_Val + 1)
@@ -240,22 +215,29 @@ repeat {
     } else {
 
       #close out to main page
-      rD$findElement("css", "#closetop")$clickElement()
+      click("#closetop")
       
       #click complete investigation
       ifVisiblethenClick("fieldset.fieldsetHeader:nth-child(6) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2) > a:nth-child(1)")
+      wait_page("Complete Investigation")
+      
+      #Mark disposition as completed
+      completedChild <- map_chr(rD$findElement("css","#dis")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
+        grepl("^Completed$", .) %>%
+        which(. == TRUE)
+      click(paste0("#dis > option:nth-child(", completedChild,")"))
       
       #Mark case status confirmed
       confirmedChild <- map_chr(rD$findElement("css","#case")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
         grepl("Confirmed", .) %>%
         which(. == TRUE)
-      rD$findElement("css", paste0("#case > option:nth-child(", confirmedChild,")"))$clickElement()
+      click(paste0("#case > option:nth-child(", confirmedChild,")"))
       
       #Add script closure comment to log
-      rD$findElement("css", "#comment")$sendKeysToElement(list("Administratively closed."))
+      enter_text("#comment", "Administratively closed.")
       
       #Click send to IDPH
-      rD$findElement("css", "input[name = \"save\"]")$clickElement()
+      click(name.is("save"))
       
       #Accept alert
       acceptAlertwithWait()
@@ -269,7 +251,7 @@ repeat {
   
   
   #Give main page time to load
-  isPageLoaded(".pageDesc")
+  wait_page("My Cases")
   
   #Determining page to work
   pageCount <- floor(totalLeftOpen / 25) + 1
@@ -291,14 +273,7 @@ repeat {
 #=================FINAL CLEAN UP ACTIONS=================#
 
 #Stop server
-remDr$server$stop() 
-
-#Deduplicate error CSV
-errors <- read_csv(errorCSV) %>%
-  distinct()
-
-#Resave final errors CSV
-write_csv(errors, errorCSV)
+stop_server()
 
 #Save processing stats - not relevant for end of year
 #scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)

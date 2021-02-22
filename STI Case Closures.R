@@ -20,7 +20,7 @@ devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/
 devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/inedss-rselenium-functions.R?raw=TRUE")
 
 #Set length of time before cases without treatment will be auto-closed (in days)
-autoCloseTimeDelay <- 45
+autoCloseTimeDelay <- 90
 
 #Set time lag before cases will be subject to processing by the script
 processingDelay <- 14
