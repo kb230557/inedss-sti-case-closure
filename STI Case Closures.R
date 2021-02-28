@@ -25,6 +25,12 @@ autoCloseTimeDelay <- 90
 #Set time lag before cases will be subject to processing by the script
 processingDelay <- 14
 
+#If running to close all cases at the end of the year, set endofYear to TRUE, otherwise should be FALSE
+endofYear <- TRUE
+
+#Set year when running for end of year case closure
+if (endofYear) { closingYear <- "20" }
+
 #Create empty file to store cases that can't be closed yet
 #Note: if script run over multiple days, will need to concatenate files
 errors <- data.frame(StateCaseNumber = character(), 
@@ -37,7 +43,13 @@ errors <- data.frame(StateCaseNumber = character(),
                      OrderingProviderName = character(),
                      OrderingProviderPhone = character()
                      )  
-error_path <- paste0('sti-exceptions/', Sys.Date(), "_sti-exceptions.csv")
+
+if (endofYear) {
+  error_path <- paste0('sti-exceptions/', Sys.Date(), "_sti-exceptions_end-of-year.csv")
+} else {
+  error_path <- paste0('sti-exceptions/', Sys.Date(), "_sti-exceptions.csv") 
+}
+  
 write_csv(errors, error_path)
 
 
@@ -102,9 +114,13 @@ repeat {
     lubridate::mdy()
   stateCaseNumber <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(6) > td:nth-child(2)")
   disease <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1)")
+  #Get first two digits of state case number (used for end of year closures)
+  scnPrefix<- substr(stateCaseNumber,1,2)
   
-  #Exit out if case is too new or event date is missing 
-  if ((Sys.Date() - eventDate) < processingDelay | is.na(eventDate)) {
+  #Exit out if 1) case is too new or 2) event date is missing or 3) if running for end of year and case in current year 
+  if ((endofYear == T & scnPrefix != endofYear) | 
+      (endofYear == F & (Sys.Date() - eventDate) < processingDelay)| 
+      is.na(eventDate)) {
     
     click(name.is("cancel"))
     
@@ -118,10 +134,13 @@ repeat {
   } else {
     
     #Determine whether case is subject to new or old processing rules
-    processingType <- ifelse((Sys.Date() - eventDate) > autoCloseTimeDelay, "old", "new")
+    if (endofYear) {
+      processingType <- "old"
+    } else {
+      processingType <- ifelse((Sys.Date() - eventDate) > autoCloseTimeDelay, "old", "new")
+    }
     
     #Click into All Case Details
-    #click("fieldset.fieldsetHeader:nth-child(6) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > a:nth-child(1)")
     click_link("View/Edit All Case Details")
     
     #Give page time to load
@@ -198,7 +217,8 @@ repeat {
       isPageLoaded(".fullPageDescription")
       
       #get provider info 
-      provider = labProcessing()
+      provider = labProcessing()   
+      ##SHOULD THIS ONLY BE IF END OF YEAR == FALSE?  WOULD ALSO NEED TO ADJUST ERRORS DATA FRAME BELOW AND UP TOP
 
       #write invalid conditions to file
       caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, stringsAsFactors = FALSE) %>%
@@ -279,7 +299,10 @@ repeat {
 stop_server()
 
 #Save processing stats -- not useful until script is more stable
-# scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)
-# write_csv(scriptStats, "Processing Statistics.csv", append = T)
+# if (endofYear == F) {  #not relevant for end of year
+#   scriptStats <- data.frame(Date = Sys.Date(), totalLeft = totalLeftOpen, totalClosed = totalClosed)
+#   write_csv(scriptStats, "Processing Statistics.csv", append = T)
+# }
+
 
 
