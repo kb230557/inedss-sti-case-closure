@@ -184,6 +184,7 @@ diagnosisProcessing <- function() {
   isTestDropDownEmpty <- length(rD$findElement("css", "#testOrderingFacility")$findChildElements("css", "option[selected=\"\"]"))
   isTestTextBoxEmpty <- nchar(get_text("#STDTRMTOTHTESTORDFAC"))
   
+  #If provider info available in comments and test ordering provider is empty, move comments to text field
   if (isTestDropDownEmpty == 0 & isTestTextBoxEmpty == 0) {
     
     #Gather comment info
@@ -210,7 +211,17 @@ diagnosisProcessing <- function() {
   } #processing test ordering if closure
   
   
-  #If not entering if above, test ordering facility is complete, exit with no error
+  #If specimen collection date is empty but available from lab section, enter date
+  if (grepl("Specimen Collection Date for a positive lab test is required.", invalidConditions)) {
+    
+    #Store specimen collection date from lab section in pieces
+    specimenCollection <- unlist(str_split(pull(provider, SpecimenCollectionDate), "/"))
+    
+    #Enter specimen collection date
+    enter_text_na(name.is("specColDatemth"), c(specimenCollection[[1]], specimenCollection[[2]], specimenCollection[[3]]))
+  }
+
+  #Exit section
   click("#caseSummary")
   
   #Check for page-specific invalid conditions
@@ -398,7 +409,7 @@ labProcessing <- function() {
   #print(lab)
   
   #fields to extract
-  fields = c("Ordering Facility Name", "Ordering Facility Address",
+  fields = c("Specimen Collection Date", "Ordering Facility Name", "Ordering Facility Address",
              "Ordering Facility Phone", "Ordering Provider Name", 
              "Ordering Provider Phone")
   

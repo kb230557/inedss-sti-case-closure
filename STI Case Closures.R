@@ -118,9 +118,9 @@ repeat {
   scnPrefix<- substr(stateCaseNumber,1,2)
   
   #Exit out if 1) case is too new or 2) event date is missing or 3) if running for end of year and case in current year 
-  if ((endofYear == T & scnPrefix != endofYear) | 
+  if ((endofYear == T & scnPrefix != closingYear) | 
       (endofYear == F & (Sys.Date() - eventDate) < processingDelay)| 
-      is.na(eventDate)) {
+      (endofYear == F & is.na(eventDate))) {
     
     click(name.is("cancel"))
     
@@ -152,13 +152,9 @@ repeat {
     
     #Check for major name error before processing case
     if (class(invalidConditions) != "try-error") {
-      
       nameError <- grepl("First Name|Last Name", invalidConditions)
-      
     } else {
-      
       nameError <- FALSE
-      
     }
     
     #If no name error, process other sections
@@ -170,7 +166,11 @@ repeat {
       #Give page time to load
       isPageLoaded(".fullPageDescription")
       
-      #Processing diagnosis (no potential CCDPH errors so return contains info possibly needed in Treatment section)
+      #Get provider info
+      #Process lab prior to diagnosis in case specimen collection date needed
+      provider = labProcessing() 
+      
+      #Processing diagnosis (no potential CCDPH errors; return contains info possibly needed in Treatment section)
       testOrderFac <- diagnosisProcessing()
       
       #Give page time to load
@@ -178,6 +178,9 @@ repeat {
       
       #Processing treatment
       treatmentResults <- treatmentProcessing(disease)
+      
+      #Give page time to load
+      isPageLoaded(".fullPageDescription")
       
       #Creating CCDPH error string
       CCDPHErrors <- paste(demographicsResults, treatmentResults, collapse = " ")
@@ -212,13 +215,8 @@ repeat {
     #Take final actions
     if (nchar(invalidConditions) > 1) { #invalid conditions exist, case will not be closed
       
-      
       #Give page time to load
       isPageLoaded(".fullPageDescription")
-      
-      #get provider info 
-      provider = labProcessing()   
-      ##SHOULD THIS ONLY BE IF END OF YEAR == FALSE?  WOULD ALSO NEED TO ADJUST ERRORS DATA FRAME BELOW AND UP TOP
 
       #write invalid conditions to file
       caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, stringsAsFactors = FALSE) %>%
@@ -244,31 +242,61 @@ repeat {
       ifVisiblethenClick("fieldset.fieldsetHeader:nth-child(6) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2) > a:nth-child(1)")
       wait_page("Complete Investigation")
       
-      #Mark disposition as completed
-      completedChild <- map_chr(rD$findElement("css","#dis")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
-        grepl("^Completed$", .) %>%
-        which(. == TRUE)
-      click(paste0("#dis > option:nth-child(", completedChild,")"))
+      #Check for final case validation issues
+      caseValidation <- get_text("#completion")
       
-      #Mark case status confirmed
-      confirmedChild <- map_chr(rD$findElement("css","#case")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
-        grepl("Confirmed", .) %>%
-        which(. == TRUE)
-      click(paste0("#case > option:nth-child(", confirmedChild,")"))
-      
-      #Add script closure comment to log
-      enter_text("#comment", "Administratively closed.")
-      
-      #Click send to IDPH
-      click(name.is("save"))
-      
-      #Accept alert
-      acceptAlertwithWait()
-      
-      #Increment cases worked counter
-      totalClosed <- totalClosed + 1
+      #If errors will prevent closing the case, exit out and store in errors list
+      if (grepl("A Chlamydia case already exists for this person", caseValidation)) {
+        
+        #write invalid conditions to file
+        caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = caseValidation, stringsAsFactors = FALSE) %>%
+          bind_cols(provider)
+        write_csv(caseResults, error_path, append = T)
+        
+        #exit from complete case
+        click(name.is("cancel"))
+        
+        #Give page time to load
+        wait_page("Case Summary")
+        
+        #Increment cases worked counter
+        totalLeftOpen <- totalLeftOpen + 1
+        
+        #close out to main page
+        ifVisiblethenClick(name.is("cancel"))
+        
+        #Determine next row to work
+        tr_n_child_Val <- ifelse(totalLeftOpen %% 25 == 0, 8, tr_n_child_Val + 1)
+        
+      } else {
+        
+        #Mark disposition as completed
+        completedChild <- map_chr(rD$findElement("css","#dis")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
+          grepl("^Completed$", .) %>%
+          which(. == TRUE)
+        click(paste0("#dis > option:nth-child(", completedChild,")"))
+        
+        #Mark case status confirmed
+        confirmedChild <- map_chr(rD$findElement("css","#case")$findChildElements("css", "option"), function(x) x$getElementText()[[1]]) %>%
+          grepl("Confirmed", .) %>%
+          which(. == TRUE)
+        click(paste0("#case > option:nth-child(", confirmedChild,")"))
+        
+        #Add script closure comment to log
+        enter_text("#comment", "Administratively closed.")
+        
+        #Click send to IDPH
+        click(name.is("save"))
+        
+        #Accept alert
+        acceptAlertwithWait()
+        
+        #Increment cases worked counter
+        totalClosed <- totalClosed + 1
+        
+      } #if/else from completion screen
 
-    }
+    } #if/else all closing actions
     
   }  #if/else closure for case too new to process or not
   
