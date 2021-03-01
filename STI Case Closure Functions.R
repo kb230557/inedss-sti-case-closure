@@ -217,8 +217,11 @@ diagnosisProcessing <- function() {
     #Store specimen collection date from lab section in pieces
     specimenCollection <- unlist(str_split(pull(provider, SpecimenCollectionDate), "/"))
     
-    #Enter specimen collection date
-    enter_text_na(name.is("specColDatemth"), c(specimenCollection[[1]], specimenCollection[[2]], specimenCollection[[3]]))
+    #Enter specimen collection date if available
+    if (length(specimenCollection) > 1) {
+      enter_text_na(name.is("specColDatemth"), c(specimenCollection[[1]], specimenCollection[[2]], specimenCollection[[3]]))
+    }
+
   }
 
   #Exit section
