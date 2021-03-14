@@ -26,10 +26,10 @@ autoCloseTimeDelay <- 90
 processingDelay <- 14
 
 #If running to close all cases at the end of the year, set endofYear to TRUE, otherwise should be FALSE
-endofYear <- TRUE
+endofYear <- FALSE
 
 #Set year when running for end of year case closure
-if (endofYear) { closingYear <- "20" }
+if (endofYear) { closingYear <- "20" } else { closingYear <- NA}
 
 #Create empty file to store cases that can't be closed yet
 #Note: if script run over multiple days, will need to concatenate files
