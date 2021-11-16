@@ -183,6 +183,7 @@ diagnosisProcessing <- function() {
   #Checking test ordering facility
   isTestDropDownEmpty <- length(rD$findElement("css", "#testOrderingFacility")$findChildElements("css", "option[selected=\"\"]"))
   isTestTextBoxEmpty <- nchar(get_text("#STDTRMTOTHTESTORDFAC"))
+  isTestProviderEmpty <- length(rD$findElement("css", "#testOrderingProvider")$findChildElements("css", "option[selected=\"\"]"))
   
   #If provider info available in comments and test ordering provider is empty, move comments to text field
   if (isTestDropDownEmpty == 0 & isTestTextBoxEmpty == 0) {
@@ -208,7 +209,17 @@ diagnosisProcessing <- function() {
       
     } 
     
+  } else if (isTestDropDownEmpty != 0){
+    
+    #store test ordering facility if drop down isn't empty
+    testOrderingFacility <- get_text("#testOrderingFacility") %>% gsub("\n.*", "", .) %>% trimws()
+    
   } #processing test ordering if closure
+  
+  #Also store treating provider if not empty
+  if (isTestProviderEmpty != 0) {
+    testOrderingProvider <- get_text("#testOrderingProvider") %>% gsub("\n.*", "", .) %>% trimws()
+  }
   
   
   #If specimen collection date is empty but available from lab section, enter date
@@ -239,8 +250,12 @@ diagnosisProcessing <- function() {
   }
   
   
-  #Returning test ordering in case needed for treatment
-  return(ifelse(exists("diagnosisComment"), diagnosisComment, NA))
+  #Returning test ordering comment box in case needed for treatment and test ordering drop down if complete
+  diagnosisResults <- c(ifelse(exists("diagnosisComment"), diagnosisComment, NA), 
+                        ifelse(exists("testOrderingFacility"), testOrderingFacility, NA),
+                        ifelse(exists("testOrderingProvider"), testOrderingProvider, NA))
+  return(diagnosisResults)
+  #return(ifelse(exists("diagnosisComment"), diagnosisComment, NA))
   
 }
 
@@ -330,7 +345,7 @@ treatmentProcessing <- function(ctorgc) {
       isPageLoaded("#STDTRMTOTHTREATFAC")
       
       #Copy diagnosis provider to text box if available
-      enter_text("#STDTRMTOTHTREATFAC", testOrderFac)
+      if (!is.na(diagnosisResults[[1]])) {enter_text("#STDTRMTOTHTREATFAC", diagnosisResults[[1]])}
       
     }
     

@@ -37,6 +37,8 @@ errors <- data.frame(StateCaseNumber = character(),
                      EventDate = as.Date(character()), 
                      Disease = character(),
                      Reason = character(),
+                     DiagnosisOrderingFacility = character(),
+                     DiagnosisOrderingProvider = character(),
                      OrderingFacilityName = character(),
                      OrderingFacilityAddress = character(),
                      OrderingFacilityPhone = character(),
@@ -171,7 +173,7 @@ repeat {
       provider = labProcessing() 
       
       #Processing diagnosis (no potential CCDPH errors; return contains info possibly needed in Treatment section)
-      testOrderFac <- diagnosisProcessing()
+      diagnosisResults<- diagnosisProcessing()
       
       #Give page time to load
       isPageLoaded(".fullPageDescription")
@@ -219,7 +221,7 @@ repeat {
       isPageLoaded(".fullPageDescription")
 
       #write invalid conditions to file
-      caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, stringsAsFactors = FALSE) %>%
+      caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, diagnosisFacility = diagnosisResults[[2]], diagnosisProvider = diagnosisResults[[3]], stringsAsFactors = FALSE) %>%
         bind_cols(provider)
       write_csv(caseResults, error_path, append = T)
       
@@ -246,10 +248,10 @@ repeat {
       caseValidation <- get_text("#completion")
       
       #If errors will prevent closing the case, exit out and store in errors list
-      if (grepl("A Chlamydia case already exists for this person", caseValidation)) {
+      if (grepl("case already exists for this person", caseValidation)) {
         
         #write invalid conditions to file
-        caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = caseValidation, stringsAsFactors = FALSE) %>%
+        caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = caseValidation, diagnosisFacility = diagnosisResults[[2]], diagnosisProvider = diagnosisResults[[3]], stringsAsFactors = FALSE) %>%
           bind_cols(provider)
         write_csv(caseResults, error_path, append = T)
         
@@ -324,7 +326,7 @@ repeat {
 #=================FINAL CLEAN UP ACTIONS=================#
 
 #Stop server
-stop_server()
+stop_server(need_java_kill = T)
 
 #Save processing stats -- not useful until script is more stable
 # if (endofYear == F) {  #not relevant for end of year
