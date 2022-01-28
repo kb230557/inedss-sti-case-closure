@@ -1,0 +1,72 @@
+---
+title: ''
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#load required packages
+library(tidyverse)
+library(DBI)
+library(dbplyr)
+library(keyring)
+library(vroom)
+
+#store file path for STI provider info database
+#key_set("sti_provider_db")
+
+```
+
+```{r pull_providers}
+
+#Note:Provider info kept in Microsoft Access database
+
+#set pieces of database connection and construct string
+db_path <- key_get("sti_provider_db")
+dbq_string <- paste0("DBQ=", db_path)
+driver_string <- "Driver={Microsoft Access Driver (*.mdb, *.accdb)};"
+db_connect_string <- paste0(driver_string, dbq_string)
+
+#connect to provider info database
+db_connection <- dbConnect(odbc::odbc(), .connection_string = db_connect_string)
+
+#connect to database table with provider info and pull into R
+providers <- tbl(db_connection, "OrgListCurrentSTD") %>%
+  select(`Organization Name`:County) %>%
+  collect() %>%
+  janitor::clean_names() %>%
+  mutate(across(where(is.character), ~na_if(.,""))) %>%
+  mutate(across(where(is.character), toupper))
+
+#close database connection
+dbDisconnect(db_connection)
+
+```
+
+
+```{r import_exceptions}
+
+#import exception files
+files <- list.files(path = 'sti-exceptions', full.names = T)
+exceptions <- vroom(files[[10]]) %>%
+  distinct()
+
+```
+
+
+
+```{r match_providers}
+
+exception_matches <- exceptions %>%
+  mutate(across(contains("Ordering"), toupper)) %>%
+  mutate(org_match = ifelse(is.na(OrderingFacilityName), F, OrderingFacilityName %in% providers$organization_name),
+         address_match = ifelse(is.na(OrderingFacilityAddress), F, OrderingFacilityAddress %in% providers$address_line_1),
+         phone_match = ifelse(is.na(OrderingFacilityPhone), F, OrderingFacilityPhone %in% providers$phone | OrderingProviderPhone %in% providers$phone),
+         any_match = org_match + address_match + phone_match)
+
+```
+
+
