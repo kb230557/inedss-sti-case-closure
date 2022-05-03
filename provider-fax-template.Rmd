@@ -1,0 +1,53 @@
+---
+output: 
+  word_document:
+    reference_docx: CCDPH_Fax_Template.docx
+params:
+  data: "placeholder"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F)
+
+library(tidyverse)
+library(kableExtra)
+library(flextable)
+
+patients <- as.data.frame(params$data[[1]])
+
+```
+
+
+**TO:** `r distinct(patients, matching_provider)`
+
+**FAX:** `r distinct(patients, fax)`
+
+**FROM:** Cook County Department of Public Health
+
+**SUBJECT:** Required Morbidity Reporting for Sexually Transmitted Infections
+
+***
+
+\
+
+Illinois Administrative Code (77 Ill. Adm. Code 693, Section 693.30) states that all physicians who diagnose and/or treat a person with Gonorrhea, Chlamydia, Syphilis, and Chancroid are required to report that information to the local health department within 7 days of diagnosis/treatment. The attached list of patients have been reported but are missing required information for closure. Please re-submit a morbidity report form with the required information via fax to 708-836-5450. Morbidity report forms can be downloaded from https://cookcountypublichealth.org/wp-content/uploads/2019/11/idph-morb-report-2018.pdf. Please contact the STI Unit via phone with questions (708-836-5456).
+
+*IMPORTANT: This facsimile transmission contains confidential information. It is intended for the exclusive use of the individual or entity to whom it is addressed and may contain information that is proprietary, privileged, confidential and/or exempt from disclosure under applicable law. If you are not the intended recipient (or an employee or agent responsible for delivering this facsimile transmission to the intended recipient), you are hereby notified that any disclosure, dissemination, distribution or copying of this information is strictly prohibited and may be subject to legal restriction or sanction. Please notify CCDPH by telephone (number listed above) to arrange the return or destruction of the information and all copies.*
+
+\newpage
+
+```{r}
+
+patients %>%
+  select(Name, DOB, SpecimenCollectionDate, Reason, provider_clean) %>%
+  #kable(col.names = c("Patient Name", "Date of Birth", "Specimen Collection Date", "Missing Information", "Diagnosing Provider"))
+  flextable() %>%
+  set_header_labels(Name = "Patient Name", 
+                    DOB = "Date of Birth", 
+                    SpecimenCollectionDate = "Specimen Collection Date",
+                    Reason = "Missing Information",
+                    provider_clean = "Diagnosing Provider") %>%
+  width(width = 1.2)
+
+```
+

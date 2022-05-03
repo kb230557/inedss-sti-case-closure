@@ -314,7 +314,7 @@ treatmentProcessing <- function(ctorgc) {
   if(processingType == "new" & any(treatmentSelected) == TRUE & any(treatmentAdequate) == FALSE) {
     
     #Save CCDPH error
-    treatmentError <- "Treatment inadequate or needs verification."
+    treatmentError <- "Inadequate treatment per CDC guidelines."
     
   }
   

@@ -34,11 +34,14 @@ if (endofYear) { closingYear <- "20" } else { closingYear <- NA}
 #Create empty file to store cases that can't be closed yet
 #Note: if script run over multiple days, will need to concatenate files
 errors <- data.frame(StateCaseNumber = character(), 
+                     Name = character(),
+                     DOB = as.Date(character()),
                      EventDate = as.Date(character()), 
                      Disease = character(),
                      Reason = character(),
                      DiagnosisOrderingFacility = character(),
                      DiagnosisOrderingProvider = character(),
+                     SpecimenCollectionDate = as.Date(character()),
                      OrderingFacilityName = character(),
                      OrderingFacilityAddress = character(),
                      OrderingFacilityPhone = character(),
@@ -111,7 +114,9 @@ repeat {
   #isPageLoaded(".pageDesc")
   wait_page("Case Summary")
   
-  #Store event date and state case number and disease for future use
+  #Store patient info for future use
+  name <- get_text(".fieldsetNameBlock > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2)") %>% trimws()
+  dob <- get_text(".fieldsetNameBlock > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(5)") %>% lubridate::mdy()
   eventDate <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2)") %>%
     lubridate::mdy()
   stateCaseNumber <- get_text("#container > div:nth-child(4) > form:nth-child(4) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(6) > td:nth-child(2)")
@@ -221,7 +226,14 @@ repeat {
       isPageLoaded(".fullPageDescription")
 
       #write invalid conditions to file
-      caseResults <- data.frame(case = stateCaseNumber, date = eventDate, disease = disease, errors = invalidConditions, diagnosisFacility = diagnosisResults[[2]], diagnosisProvider = diagnosisResults[[3]], stringsAsFactors = FALSE) %>%
+      caseResults <- data.frame(case = stateCaseNumber,
+                                name = name,
+                                dob = dob,
+                                date = eventDate, 
+                                disease = disease, 
+                                errors = invalidConditions, 
+                                diagnosisFacility = diagnosisResults[[2]], 
+                                diagnosisProvider = diagnosisResults[[3]], stringsAsFactors = FALSE) %>%
         bind_cols(provider)
       write_csv(caseResults, error_path, append = T)
       
