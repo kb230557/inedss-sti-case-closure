@@ -16,8 +16,8 @@ library(dplyr)
 
 #Load all supporting functions
 source('STI Case Closure Functions.R')
-devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/general-use-rselenium-functions.R?raw=TRUE")
-devtools::source_url("https://github.com/hsteinberg/ccdph-functions/blob/master/inedss-rselenium-functions.R?raw=TRUE")
+devtools::source_url("https://github.com/Cook-County-Department-of-Public-Health/ccdph-functions/blob/master/general-use-rselenium-functions.R?raw=TRUE")
+devtools::source_url("https://github.com/Cook-County-Department-of-Public-Health/ccdph-functions/blob/master/inedss-rselenium-functions.R?raw=TRUE")
 
 #Set length of time before cases without treatment will be auto-closed (in days)
 autoCloseTimeDelay <- 90
