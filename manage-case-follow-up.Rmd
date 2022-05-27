@@ -24,6 +24,7 @@ fax_dir <- key_get("sti-fax-dir")
 #store sti staff emails for follow up
 #key_set("sti_supervisor_email")
 #key_set("sti_provider_followup_email")
+#key_set("sti_pm_email")
 
 
 ```
@@ -157,7 +158,7 @@ no_fax_clean <- no_fax %>%
   arrange(organization_name) %>%
   janitor::clean_names(case = "title")
 
-#write file for follow up
+#write file for history
 write_csv(no_fax_clean, file = paste0(fax_dir, "Provider Follow Up/", Sys.Date(), "_providers-with-missing-fax.csv"))
 
 #set pieces of database connection and construct string for data entry database
@@ -201,7 +202,7 @@ no_provider_record_clean <- no_provider_record %>%
   arrange(organization_name) %>%
   janitor::clean_names(case = "title")
 
-#write files for follow up
+#write files for history
 write_csv(no_provider_record_clean, file = paste0(fax_dir, "Provider Follow Up/", Sys.Date(), "_providers-with-no-database-record.csv"))
 
 #pull in database of providers with no fax
@@ -225,14 +226,13 @@ if(file.exists(paste0(fax_dir, "Provider Follow Up/", Sys.Date(), "_providers-wi
 
   send.mail(from = key_get("cch_auto_email"),
             to = key_get("sti_provider_followup_email"),
-            cc = c(key_get("sti_supervisor_email"), key_get("smtp_user")),
-            subject = "Biweekly Provider Follow Up Lists",
-            body = "SECURELOCK: Please see attached lists of STI providers who need fax numbers entered into the STI Provider database.",
+            cc = c(key_get("sti_supervisor_email"), key_get("smtp_user"), key_get("sti_pm_email")),
+            subject = "New STI Providers Need Fax Follow Up",
+            body = "Hello, new providers with missing fax numbers have been added to the STI AddFax database. Please visit the database and enter missing fax numbers for any providers in Form 1 and Form 2. Thank you!",
             html = TRUE,
             smtp = list(host.name = key_get("smtp_host"), 
                         user.name = key_get("smtp_user"),
                         passwd = key_get("Office365"), tls = TRUE),
-            attach.files = c(paste0(fax_dir, "Provider Follow Up/", Sys.Date(), "_providers-with-no-database-record.csv"), paste0(fax_dir, "Provider Follow Up/", Sys.Date(), "_providers-with-missing-fax.csv")),
             authenticate = TRUE,
             send = TRUE) 
   
