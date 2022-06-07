@@ -119,8 +119,9 @@ write_csv(manual_followup_cases, file = paste0(fax_dir, "Manual Follow Up/", Sys
 if(file.exists(paste0(fax_dir, "Manual Follow Up/", Sys.Date(), "_sti-cases-needing-manual-follow-up.csv"))){
 
   send.mail(from = key_get("cch_auto_email"),
-            to = key_get("sti_supervisor_email"),
-            cc = key_get("smtp_user"),
+            #to = key_get("sti_supervisor_email"),
+            to = key_get("smtp_user"),
+            #cc = key_get("smtp_user"),
             subject = "SECURELOCK: STI Cases Requiring Manual Follow Up",
             body = "The attached list of cases requires manual follow up from STI staff in order to close.",
             html = TRUE,
@@ -310,12 +311,12 @@ email_files <- list.files(paste0(fax_dir,"Emails/", Sys.Date()), full.names = T)
 
 #Send follow up emails to Advocate
 if(length(email_files) >= 1){
-
-  send.mail(from = key_get("cch_auto_email"),
+  
+    send.mail(from = key_get("cch_auto_email"),
             to = key_get("advocate_ip_email"),
-            cc = key_get("smtp_host"),
-            subject = "SECURELOCK: STI Cases Requiring Follow Up",
-            body = "The attached files contain information on patients missing required information in I-NEDSS. Please submit missing information.",
+            cc = key_get("smtp_user"),
+            subject = "SECURELOCK: STI Cases Reported to CCDPH Require Follow Up",
+            body = "The attached files contain information on patients missing required information in I-NEDSS. Please submit the missing information. Thank you!",
             html = TRUE,
             smtp = list(host.name = key_get("smtp_host"), 
                         user.name = key_get("smtp_user"),
@@ -338,7 +339,7 @@ fax_history <- bind_rows(fax_history, new_cases)
 
 #Increment fax counter for cases sent
 fax_history <- fax_history %>% 
-  mutate(fax_counter = ifelse(state_case_number %in% matched_fax_clean$StateCaseNumber, fax_counter + 1, fax_counter))
+  mutate(fax_counter = ifelse(state_case_number %in% unique(c(matched_fax$StateCaseNumber, matched_email$StateCaseNumber)), fax_counter + 1, fax_counter))
 
 #Re-save fax history
 write_csv(fax_history, "fax-history.csv")
