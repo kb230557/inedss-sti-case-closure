@@ -110,8 +110,10 @@ manual_followup_cases <- exception_plus_provider %>%
   filter(grepl("LAB", matching_provider) | 
            grepl("non-standard treatment|inadequate treatment|case already exists for this person", Reason, ignore.case = T) | 
            is.na(inedss_provider_city)) %>%
-  select(Facility = matching_provider, StateCaseNumber:DiagnosisOrderingProvider, OrderingFacilityName:OrderingProviderPhone) %>%
-  arrange(Facility)
+    #select(Facility = matching_provider, StateCaseNumber:DiagnosisOrderingProvider, OrderingFacilityName:OrderingProviderPhone) %>%
+  select(StateCaseNumber:Reason, Facility = matching_provider) %>%
+  arrange(Facility) %>%
+  filter(!grepl("\\d", Name))
 
 #write file for follow up and email to STI supervisor
 write_csv(manual_followup_cases, file = paste0(fax_dir, "Manual Follow Up/", Sys.Date(), "_sti-cases-needing-manual-follow-up.csv"))
@@ -119,8 +121,7 @@ write_csv(manual_followup_cases, file = paste0(fax_dir, "Manual Follow Up/", Sys
 if(file.exists(paste0(fax_dir, "Manual Follow Up/", Sys.Date(), "_sti-cases-needing-manual-follow-up.csv"))){
 
   send.mail(from = key_get("cch_auto_email"),
-            #to = key_get("sti_supervisor_email"),
-            to = key_get("smtp_user"),
+            to = c(key_get("sti_supervisor_email"), key_get("sti_provider_followup_email")),
             #cc = key_get("smtp_user"),
             subject = "SECURELOCK: STI Cases Requiring Manual Follow Up",
             body = "The attached list of cases requires manual follow up from STI staff in order to close.",
