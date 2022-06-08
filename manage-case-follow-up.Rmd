@@ -270,9 +270,9 @@ follow_up_cases <- exception_plus_provider %>%
   mutate(SpecimenCollectionDate = lubridate::mdy(SpecimenCollectionDate))
 
 #separate cases for faxing
-matched_fax <- follow_up_cases %>%
+matched_fax_all <- follow_up_cases %>%
   filter(needs_email_followup == F) 
-matched_fax <- split(matched_fax, matched_fax$match_key)
+matched_fax <- split(matched_fax_all, matched_fax_all$match_key)
 
 #Create directory to save faxes
 dir.create(paste0(fax_dir,"Faxes/", Sys.Date()))
@@ -289,9 +289,9 @@ for (i in 1:length(matched_fax)) {
 }
 
 #separate cases for email (only relevant for advocate)
-matched_email <- follow_up_cases %>%
+matched_email_all <- follow_up_cases %>%
   filter(needs_email_followup) 
-matched_email <- split(matched_email, matched_email$match_key)
+matched_email <- split(matched_email_all, matched_email_all$match_key)
 
 #Create directory to save emails
 dir.create(paste0(fax_dir,"Emails/", Sys.Date()))
@@ -340,7 +340,7 @@ fax_history <- bind_rows(fax_history, new_cases)
 
 #Increment fax counter for cases sent
 fax_history <- fax_history %>% 
-  mutate(fax_counter = ifelse(state_case_number %in% unique(c(matched_fax$StateCaseNumber, matched_email$StateCaseNumber)), fax_counter + 1, fax_counter))
+  mutate(fax_counter = ifelse(state_case_number %in% unique(c(matched_fax_all$StateCaseNumber, matched_email_all$StateCaseNumber)), fax_counter + 1, fax_counter))
 
 #Re-save fax history
 write_csv(fax_history, "fax-history.csv")
