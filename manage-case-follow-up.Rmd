@@ -135,7 +135,7 @@ if(file.exists(paste0(fax_dir, "Manual Follow Up/", Sys.Date(), "_sti-cases-need
 
   send.mail(from = key_get("cch_auto_email"),
             to = c(key_get("sti_supervisor_email"), key_get("sti_provider_followup_email")),
-            #cc = key_get("smtp_user"),
+            cc = key_get("smtp_user"),
             subject = "SECURELOCK: STI Cases Requiring Manual Follow Up",
             body = "The attached list of cases requires manual follow up from STI staff in order to close.",
             html = TRUE,
@@ -310,7 +310,7 @@ for (i in 1:length(matched_fax)) {
   
 }
 
-#separate cases for email (only relevant for advocate)
+#separate cases for email 
 matched_email_all <- follow_up_cases %>%
   filter(needs_email_followup) %>%
   left_join(email_providers, by = c("match_key")) 

@@ -274,8 +274,11 @@ treatmentProcessing <- function(ctorgc) {
   isPageLoaded("#STDTRMTOTHTREATFAC")
   
   #Setting correct rx list (script should fail if it encounters an STI besides CT or GC)
-  if (ctorgc == 'Chlamydia') { rx_list <- ct_rx$rx} 
-    else if (ctorgc == 'Gonorrhea') {rx_list <- gc_rx$rx }
+  if (ctorgc == 'Chlamydia') { 
+    rx_list <- ct_rx$rx
+  } else if (ctorgc == 'Gonorrhea') {
+      rx_list <- gc_rx$rx 
+      }
   
   #Creating holder for error
   treatmentError <- vector("character", 1)
