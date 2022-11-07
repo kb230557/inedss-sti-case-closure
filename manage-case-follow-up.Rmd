@@ -271,6 +271,10 @@ Generate follow up faxes and emails to providers with known follow up informatio
 #Import current follow-up history
 fax_history <- read_csv("fax-history.csv", col_types = c("cci"))
 
+#Run code below if faxes were generated but not sent previous week (re-adjust counter back by one)
+# fax_history$fax_counter <- fax_history$fax_counter - 1
+# fax_history <- filter(fax_history, fax_counter != 0)
+
 #Create list of maxed out faxes/emails
 maxed_out <- fax_history %>% filter(fax_counter >= 4) %>% pull(state_case_number)
 

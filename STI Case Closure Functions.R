@@ -278,7 +278,11 @@ treatmentProcessing <- function(ctorgc) {
     rx_list <- ct_rx$rx
   } else if (ctorgc == 'Gonorrhea') {
       rx_list <- gc_rx$rx 
-      }
+  }
+  
+  #clean punctuation and white space to ensure match
+  rx_list <- map_chr(rx_list, trimws)
+  rx_list <- map_chr(rx_list, ~gsub("[[:punct:]]", "", .x))
   
   #Creating holder for error
   treatmentError <- vector("character", 1)
@@ -300,6 +304,8 @@ treatmentProcessing <- function(ctorgc) {
     if (treatmentSelected[i]) {
       
       treatmentAdequate[i] <- rD$findElement("css",id)$findChildElements("css", "option[selected=\"\"]")[[1]]$getElementText()[[1]] %>%
+        trimws() %>%
+        gsub("[[:punct:]]", "", .) %>%
         grepl(., rx_list) %>%
         any()
       
