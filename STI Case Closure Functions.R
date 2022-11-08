@@ -68,7 +68,8 @@ demographicsProcessing <- function() {
   
   #Checking race
   currentRace <- rD$findElement("css", "#selectedRace")$findChildElements("css", "option") %>%
-    map_chr(., function(x) x$getElementText()[[1]]) 
+    map_chr(., function(x) x$getElementText()[[1]]) %>%
+    toString()
   isRaceUnknown <- grepl("Unknown", currentRace) 
   isRaceMissing <- !grepl("[[:alpha:]]", currentRace) 
   
