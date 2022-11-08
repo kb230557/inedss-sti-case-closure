@@ -18,9 +18,7 @@ patients <- as.data.frame(params$data[[1]])
 ```
 
 
-**TO:** `r distinct(patients, matching_provider)`
-
-**FAX:** `r distinct(patients, fax)`
+**TO:** `r distinct(patients, email)`
 
 **FROM:** Cook County Department of Public Health
 
@@ -34,14 +32,15 @@ Illinois Administrative Code (77 Ill. Adm. Code 693, Section 693.30) states that
 
 <br>
 
-*IMPORTANT: This facsimile transmission contains confidential information. It is intended for the exclusive use of the individual or entity to whom it is addressed and may contain information that is proprietary, privileged, confidential and/or exempt from disclosure under applicable law. If you are not the intended recipient (or an employee or agent responsible for delivering this facsimile transmission to the intended recipient), you are hereby notified that any disclosure, dissemination, distribution or copying of this information is strictly prohibited and may be subject to legal restriction or sanction. Please notify CCDPH by telephone (number listed above) to arrange the return or destruction of the information and all copies.*
+*IMPORTANT: This transmission contains confidential information. It is intended for the exclusive use of the individual or entity to whom it is addressed and may contain information that is proprietary, privileged, confidential and/or exempt from disclosure under applicable law. If you are not the intended recipient (or an employee or agent responsible for delivering this transmission to the intended recipient), you are hereby notified that any disclosure, dissemination, distribution or copying of this information is strictly prohibited and may be subject to legal restriction or sanction. Please notify CCDPH by telephone (number listed above) to arrange the return or destruction of the information and all copies.*
 
 \newpage
 
 ```{r}
 
 patients %>%
-  select(Name, DOB, SpecimenCollectionDate, clean_reason, provider_clean) %>%
+  select(Name, DOB, SpecimenCollectionDate, clean_reason, provider_clean, matching_provider) %>%
+  mutate(matching_provider = str_to_title(matching_provider)) %>%
   arrange(provider_clean) %>%
   #kable(col.names = c("Patient Name", "Date of Birth", "Specimen Collection Date", "Missing Information", "Diagnosing Provider"))
   flextable() %>%
@@ -49,7 +48,8 @@ patients %>%
                     DOB = "Date of Birth", 
                     SpecimenCollectionDate = "Specimen Collection Date",
                     clean_reason = "Missing Information",
-                    provider_clean = "Diagnosing Provider") %>%
+                    provider_clean = "Diagnosing Provider",
+                    matching_provider = "Facility Name") %>%
   width(width = 1.2)
 
 ```

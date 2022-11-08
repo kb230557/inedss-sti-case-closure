@@ -26,6 +26,9 @@ fax_dir <- key_get("sti-fax-dir")
 #key_set("sti_provider_followup_email")
 #key_set("sti_pm_email")
 
+#load list of providers that prefer email to fax
+email_providers <- readxl::read_excel(paste0(fax_dir, "providers-needing-email-follow-up.xlsx")) %>%
+  mutate(match_key = paste(inedss_name, city))
 
 ```
 
@@ -42,13 +45,21 @@ provider_db_connect_string <- paste0("Driver={Microsoft Access Driver (*.mdb, *.
 provider_db_connection <- dbConnect(odbc::odbc(), .connection_string = provider_db_connect_string)
 
 #connect to database table with provider info and pull into R
-providers <- tbl(provider_db_connection, "OrgListCurrentSTD") %>%
-  select(`Organization Name`:County) %>%
+all_providers <- tbl(provider_db_connection, "OrgListCurrentSTD") %>%
+  #select(`Organization Name`, City, Fax) %>%
   collect() %>%
   janitor::clean_names() %>%
   mutate(across(where(is.character), ~na_if(.,""))) %>%
   mutate(across(where(is.character), toupper)) %>%
-  mutate(match_key = paste(organization_name, city))
+  mutate(match_key = paste(organization_name, city)) 
+  
+providers <- all_providers %>%
+  select(organization_name, city, fax, match_key) %>%
+  distinct() %>%
+  group_by(match_key) %>%  #remove when duplicate provider issue fixed
+  arrange(fax) %>%
+  slice(n = 1) %>%
+  ungroup()
 
 #close database connection
 dbDisconnect(provider_db_connection)
@@ -95,8 +106,10 @@ exception_plus_provider <- exceptions %>%
   mutate(match_key = paste(matching_provider, inedss_provider_city)) %>%
   left_join(providers, by = "match_key") %>%
   #left_join(providers, by = c("matching_provider" = "organization_name", "inedss_provider_city" = "city")) %>%
-  mutate(needs_email_followup = grepl("ADVOCATE .* HOSPITAL|ADVOCATE .* MEDICAL CENTER", matching_provider)) #advocate hospital system uses email
+  mutate(needs_email_followup = match_key %in% email_providers$match_key)  
 
+#check for new variations of email provider facility names
+exception_plus_provider %>% filter(grepl("ADVOCATE .* HOSPITAL|ADVOCATE .* MEDICAL CENTER|WESTLAKE URGENT",matching_provider)) %>% select(matching_provider, inedss_provider_city) %>% distinct() %>% View()
 
 ```
 
@@ -122,7 +135,7 @@ if(file.exists(paste0(fax_dir, "Manual Follow Up/", Sys.Date(), "_sti-cases-need
 
   send.mail(from = key_get("cch_auto_email"),
             to = c(key_get("sti_supervisor_email"), key_get("sti_provider_followup_email")),
-            #cc = key_get("smtp_user"),
+            cc = key_get("smtp_user"),
             subject = "SECURELOCK: STI Cases Requiring Manual Follow Up",
             body = "The attached list of cases requires manual follow up from STI staff in order to close.",
             html = TRUE,
@@ -134,6 +147,7 @@ if(file.exists(paste0(fax_dir, "Manual Follow Up/", Sys.Date(), "_sti-cases-need
             send = TRUE) 
   
 }
+
 
 
 ```
@@ -153,8 +167,9 @@ no_provider_record <- filter(exception_plus_provider, is.na(fax) &
                                needs_email_followup == F) #doesn't exist in provider DB
 
 #format file for providers who are in DB but missing fax
-no_fax_clean <- no_fax %>%
-  select(organization_name = matching_provider, contains("address_line"), city = inedss_provider_city, state:county) %>%
+no_fax_clean <- all_providers %>%
+  filter(match_key %in% no_fax$match_key & is.na(fax)) %>%
+  select(organization_name:county) %>%
   distinct() %>%
   mutate(zip = as.integer(zip)) %>%
   arrange(organization_name) %>%
@@ -171,12 +186,15 @@ addfax_db_connection <- dbConnect(odbc::odbc(), .connection_string = addfax_db_c
 
 #pull in database of providers with no fax
 db_no_fax <- tbl(addfax_db_connection, "Temp2") %>%
-  collect()
+  collect() %>%
+  mutate(Fax = NA,
+         `Address Line 2` = ifelse(`Address Line 2` == "NA", NA, `Address Line 2`))
 
 #append current no fax records to db table and de-duplicate
 db_no_fax_append <- db_no_fax %>%
   bind_rows(no_fax_clean) %>%
   distinct()
+  #distinct(`Organization Name`, City)
 
 #overwrite table in database with new data
 dbWriteTable(addfax_db_connection, "Temp2", db_no_fax_append, overwrite = T, batch_rows = 1)
@@ -214,7 +232,11 @@ db_no_provider_record <- tbl(addfax_db_connection, "NOPROVIDER") %>%
 #append current no fax records to db table and de-duplicate
 db_no_provider_record_append <- db_no_provider_record %>%
   bind_rows(no_provider_record_clean) %>%
-  distinct() %>%
+  #distinct() %>%
+  group_by(`Organization Name`, City) %>%  #prevent duplicates from being added to DB, take ones with most complete info
+  arrange(Address, `Phone List`, `Provider List`) %>%
+  slice(1) %>%
+  ungroup() %>%
   mutate(`Provider List` = strtrim(`Provider List`, 254))
 
 #overwrite table in database with new data
@@ -248,6 +270,10 @@ Generate follow up faxes and emails to providers with known follow up informatio
 
 #Import current follow-up history
 fax_history <- read_csv("fax-history.csv", col_types = c("cci"))
+
+#Run code below if faxes were generated but not sent previous week (re-adjust counter back by one)
+# fax_history$fax_counter <- fax_history$fax_counter - 1
+# fax_history <- filter(fax_history, fax_counter != 0)
 
 #Create list of maxed out faxes/emails
 maxed_out <- fax_history %>% filter(fax_counter >= 4) %>% pull(state_case_number)
@@ -288,44 +314,50 @@ for (i in 1:length(matched_fax)) {
   
 }
 
-#separate cases for email (only relevant for advocate)
+#separate cases for email 
 matched_email_all <- follow_up_cases %>%
-  filter(needs_email_followup) 
-matched_email <- split(matched_email_all, matched_email_all$match_key)
+  filter(needs_email_followup) %>%
+  left_join(email_providers, by = c("match_key")) 
+matched_email <- split(matched_email_all, matched_email_all$system)
 
 #Create directory to save emails
 dir.create(paste0(fax_dir,"Emails/", Sys.Date()))
 
-#Loop through list and write fax cover sheets for emails
+#Loop through list and write memos for emails
 for (i in 1:length(matched_email)) {
   
   provider_data <- list(matched_email[[i]])
   provider_name <- str_squish(gsub("[[:punct:]]", "", names(matched_email)[i]))
-  rmarkdown::render(input = "provider-fax-template.Rmd",
+  rmarkdown::render(input = "provider-fax-template-email.Rmd",
                     output_file = paste0(fax_dir,"Emails/", Sys.Date(), "/", provider_name),
                     params = list(data = provider_data))
   
 }
 
-#Create list of files created for Advocate
-email_files <- list.files(paste0(fax_dir,"Emails/", Sys.Date()), full.names = T)
-
-#Send follow up emails to Advocate
-if(length(email_files) >= 1){
+#Loop through list and send email memos
+for (i in 1:length(matched_email)) {
   
-    send.mail(from = key_get("cch_auto_email"),
-            to = key_get("advocate_ip_email"),
+  provider_name <- str_squish(gsub("[[:punct:]]", "", names(matched_email)[i]))
+  file_name <- paste0(fax_dir,"Emails/", Sys.Date(), "/", provider_name, ".docx")
+  email <- matched_email[[i]]$email %>% unique()
+  
+  if (file.exists(file_name)) {
+    
+        send.mail(from = key_get("cch_auto_email"),
+            to = email,
             cc = key_get("smtp_user"),
             subject = "SECURELOCK: STI Cases Reported to CCDPH Require Follow Up",
-            body = "The attached files contain information on patients missing required information in I-NEDSS. Please submit the missing information. Thank you!",
+            body = "The attached file contains information on patients missing required information in I-NEDSS. Please update the case record in I-NEDSS or fax a complete STI morbidity report form for each patient. Thank you!<br><br> <i>Note: Please do not reply directly to this email. This email address is not monitored.</i>",
             html = TRUE,
             smtp = list(host.name = key_get("smtp_host"), 
                         user.name = key_get("smtp_user"),
                         passwd = key_get("Office365"), tls = TRUE),
-            attach.files = email_files,
+            attach.files = file_name,
             authenticate = TRUE,
             send = TRUE) 
-  
+    
+  }
+
 }
 
 
