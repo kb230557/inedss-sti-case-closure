@@ -26,8 +26,6 @@ patients <- as.data.frame(params$data[[1]])
 
 ***
 
-\
-
 Illinois Administrative Code (77 Ill. Adm. Code 693, Section 693.30) states that all physicians who diagnose and/or treat a person with Gonorrhea, Chlamydia, Syphilis, and Chancroid are required to report that information to the local health department within 7 days of diagnosis/treatment. The attached list of patients have been reported but are missing required information for closure. Please re-submit a morbidity report form with the required information via fax to 708-836-5450. Morbidity report forms can be downloaded from https://cookcountypublichealth.org/wp-content/uploads/2019/11/idph-morb-report-2018.pdf. Please contact the STI Unit via phone with questions (708-836-5454).
 
 <br>

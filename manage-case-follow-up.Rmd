@@ -61,6 +61,10 @@ providers <- all_providers %>%
   slice(n = 1) %>%
   ungroup()
 
+#add step to filter out fax numbers starting with a 1
+providers <- providers %>%
+  filter(!grepl("^1.*|^\\(1.*", fax))
+
 #close database connection
 dbDisconnect(provider_db_connection)
 
@@ -306,11 +310,41 @@ dir.create(paste0(fax_dir,"Faxes/", Sys.Date()))
 #Loop through list and write fax cover sheets
 for (i in 1:length(matched_fax)) {
   
+  #Extract provider data
   provider_data <- list(matched_fax[[i]])
+  
+  #Save provider name, file name, and fax num
   provider_name <- str_squish(gsub("[[:punct:]]", "", names(matched_fax)[i]))
+  fax_file_name <- paste0(fax_dir,"Faxes/", Sys.Date(), "/", provider_name)
+  fax_num <- gsub("[[:punct:]]", "", unique(provider_data[[1]]$fax)) 
+  
+  #Generate provider fax and save in directory
   rmarkdown::render(input = "provider-fax-template.Rmd",
-                    output_file = paste0(fax_dir,"Faxes/", Sys.Date(), "/", provider_name),
+                    output_file = fax_file_name,
                     params = list(data = provider_data))
+  
+  # #Pause for stability
+  # Sys.sleep(2)
+  # 
+  # #Send fax to provider via e-fax system
+  #   if (file.exists(paste0(fax_file_name, ".docx"))) {
+  #   
+  #       send.mail(from = key_get("cch_auto_email"),
+  #           to = paste0("91", fax_num, "@fax.cookcountyhhs.org"),
+  #           subject = "SECURELOCK: This is an official communication from the Cook County Department of Public Health. Please enclosed cover sheet.",
+  #           body = " ",
+  #           html = TRUE,
+  #           smtp = list(host.name = key_get("smtp_host"), 
+  #                       user.name = key_get("smtp_user"),
+  #                       passwd = key_get("Office365"), tls = TRUE),
+  #           attach.files = paste0(fax_file_name, ".docx"),
+  #           authenticate = TRUE,
+  #           send = TRUE) 
+  #   
+  #   }
+  # 
+  # #Pause for stability
+  # Sys.sleep(3)
   
 }
 
